@@ -21,6 +21,8 @@ module.exports = {
 
 ## Run the App
 
+Make sure you have node installed and run `yarn install`. We recommend using nvm, if you have that then run `nvm install` and `nvm use`.
+
 1. Start the server by running `node app/server.js` from `/`
 
 2. Until the UI is built go to `http://localhost:3006/api/sync`. You should see a success message:
