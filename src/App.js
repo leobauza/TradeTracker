@@ -20,23 +20,18 @@ class App extends Component {
   }
 
   componentDidMount() {
-    // fetch('/api/test', {
-    //   method: 'get'
-    // }).then(res => {
-    //   res.json().then((json) => {
-    //     console.log(json)
-    //   })
-    // }).catch(err => {
-    //   console.error(err)
-    // })
+    this.loadBittrexJson()
+  }
 
+  loadBittrexJson() {
     fetch('bittrex.json', {
       method: 'get'
     }).then(res => {
       res.json().then((json) => {
+        const hodlings = json.hodlings
         this.setState({
-          data: json,
-          total: json.reduce((sum, next) => {
+          data: hodlings,
+          total: hodlings.reduce((sum, next) => {
             return sum + (next.balance * next.currentPrice)
           }, 0).toPrecision(8)
         })
@@ -46,11 +41,7 @@ class App extends Component {
     })
   }
 
-  fetchBittrexData() {
-  }
-
   render() {
-
     const { data, total } = this.state
 
     return (
