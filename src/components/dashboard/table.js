@@ -19,7 +19,7 @@ export default class DashboardTable extends Component {
 
     const perc = (val/totalCurrentValue) * 100
 
-    return perc.toPrecision(4)
+    return perc.toFixed(2)
   }
 
   col(content, align = 'right') {
