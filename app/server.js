@@ -18,7 +18,28 @@ const combineBittrexInfo = (resolve, reject) => {
     })
 
     hodlings.forEach((item, index) => {
+      // item:  { Currency: 'BCC',
+      //   Balance: 3.4e-7,
+      //   Available: 3.4e-7,
+      //   Pending: 0,
+      //   CryptoAddress: null }
       bittrex.getmarketsummary({market: `BTC-${item.Currency}`}, (summary) => {
+        // summary:  { success: true,
+        //   message: '',
+        //   result:
+        //    [ { MarketName: 'BTC-BCC',
+        //        High: 0.12,
+        //        Low: 0.112,
+        //        Volume: 26303.07091572,
+        //        Last: 0.11436,
+        //        BaseVolume: 3048.22418422,
+        //        TimeStamp: '2017-09-26T00:07:28.16',
+        //        Bid: 0.11436,
+        //        Ask: 0.11479,
+        //        OpenBuyOrders: 2815,
+        //        OpenSellOrders: 14037,
+        //        PrevDay: 0.11460007,
+        //        Created: '2017-08-01T18:34:04.967' } ] }
         records.push({
           name: item.Currency,
           balance: item.Balance,
@@ -33,6 +54,41 @@ const combineBittrexInfo = (resolve, reject) => {
   })
 }
 
+const getBittrexOrders = (balances, resolve, reject) => {
+  const records = {}
+
+  balances.forEach((balance, index) => {
+    let market = `BTC-${balance.name}`
+
+    if (market !== 'BTC-BTC') {
+      bittrex.getorderhistory({ market }, (data, err) => {
+        // {
+        //   "OrderUuid": "4223cb31-6083-4d09-8ab9-c22acee67dfe",
+        //   "Exchange": "BTC-ETH",
+        //   "TimeStamp": "2017-09-25T00:58:55.513",
+        //   "OrderType": "LIMIT_BUY",
+        //   "Limit": 0.07703706,
+        //   "Quantity": 1.54634107,
+        //   "QuantityRemaining": 0,
+        //   "Commission": 0.00029779,
+        //   "Price": 0.11912554,
+        //   "PricePerUnit": 0.07703704,
+        //   "IsConditional": false,
+        //   "Condition": "NONE",
+        //   "ConditionTarget": null,
+        //   "ImmediateOrCancel": false,
+        //   "Closed": "2017-09-25T01:02:38.687"
+        // },
+        records[balance.name] = data.result
+
+        if (Object.keys(records).length === balances.length - 1) {
+          resolve(records)
+        }
+      })
+    }
+  })
+}
+
 
 // @TODO probably use express or something since you don't know what you
 // are doing...
@@ -41,18 +97,22 @@ const requestHandler = (req, res) => {
 
   // Sync bittrex.json with real data
   if (req.url === '/api/sync') {
-    const fetchRecords = new Promise(combineBittrexInfo)
+    const getBalances = new Promise(combineBittrexInfo)
 
-    fetchRecords.then((records) => {
-      fs.writeFile(`${__dirname}/../public/bittrex.json`, JSON.stringify(records), function(err) {
-        if(err) {
-          res.write(JSON.stringify({msg: 'Failed to write bittrex.json', status: 'error'}))
-          return console.log(err);
-        }
-        res.writeHead(200, {'Content-Type': 'text/json'});
-        res.write(JSON.stringify({msg: 'Fetched records from bittrex and updated bittrex.json', status: 'success'}))
-        console.log("The file was saved!")
-        res.end()
+    getBalances.then((balances) => {
+      const fetchOrders = new Promise((resolve, reject) => getBittrexOrders(balances, resolve, reject))
+
+      fetchOrders.then((orders) => {
+        fs.writeFile(`${__dirname}/../public/bittrex.json`, JSON.stringify({ hodlings: balances, orders }), function(err) {
+          if(err) {
+            res.write(JSON.stringify({msg: 'Failed to write bittrex.json', status: 'error'}))
+            return console.log(err);
+          }
+          res.writeHead(200, {'Content-Type': 'text/json'});
+          res.write(JSON.stringify({msg: 'Fetched records from bittrex and updated bittrex.json', status: 'success'}))
+          console.log("The file was saved!")
+          res.end()
+        })
       })
     })
   } else {
