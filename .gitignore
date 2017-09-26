@@ -22,3 +22,4 @@ yarn-error.log*
 
 app.conf.js
 bittrex.json
+orders.csv

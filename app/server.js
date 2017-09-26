@@ -1,6 +1,7 @@
 // content of index.js
 const fs = require('fs');
 const http = require('http')
+const csv = require('csv')
 const port = 3006
 const bittrex = require('node.bittrex.api')
 const { API_KEY, API_SECRET } = require('./app.conf')
@@ -103,32 +104,102 @@ const getBittrexOrders = (balances, resolve, reject) => {
   })
 }
 
+const writeCsvData = () => {
+  const csvOrders = {}
 
-// @TODO probably use express or something since you don't know what you
-// are doing...
-const requestHandler = (req, res) => {
-  console.log(req.url)
+  fs.readFile(`${__dirname}/../orders.csv`, 'utf8', (err, fileData) => {
+    if (err) throw err
 
-  // Sync bittrex.json with real data
-  if (req.url === '/api/sync') {
-    const getBalances = new Promise(combineBittrexInfo)
+    csv.parse(fileData, (err, csvData) => {
+      // example csv data
+      // Closed Date,Opened Date,Market,Type,Bid/Ask,Units Filled,Units Total,Actual Rate,Cost / Proceeds
+      // 09/26/2017 08:37:09 AM,09/26/2017 08:36:25 AM,BTC-DCR,Limit Sell,0.00879001,3.21655376,3.21655376,0.00879,0.02820285
+      csvData.forEach((row, index) => {
+        if (index !== 0) {
+          let marketName = row[2].replace('BTC-', '')
+          csvOrders[marketName] = csvOrders[marketName] || []
+          csvOrders[marketName].push(
+            // match the API order format
+            {
+              "OrderUuid": null,
+              "Exchange": row[2],
+              "TimeStamp": row[0],
+              "OrderType": row[3].replace(' ', '_').toUpperCase(),
+              "Limit": row[4],
+              "Quantity": row[6],
+              "QuantityRemaining": null,
+              "Commission": null,
+              "Price": row[8],
+              "PricePerUnit": row[7],
+              "IsConditional": null,
+              "Condition": null,
+              "ConditionTarget": null,
+              "ImmediateOrCancel": null,
+              "Closed": row[0]
+            }
+          )
+        }
+      })
 
-    getBalances.then((balances) => {
-      const fetchOrders = new Promise((resolve, reject) => getBittrexOrders(balances, resolve, reject))
+      fs.writeFile(`${__dirname}/../public/bittrex.json`, JSON.stringify({ orders: csvOrders }), function(err) {
+        if(err) {
+          res.write(JSON.stringify({msg: 'Failed to write bittrex.json', status: 'error'}))
+          return console.log(err);
+        }
+      })
+    })
+  })
+}
 
-      fetchOrders.then((orders) => {
-        fs.writeFile(`${__dirname}/../public/bittrex.json`, JSON.stringify({ hodlings: balances, orders }), function(err) {
+const appendApiData = () => {
+  const getBalances = new Promise(combineBittrexInfo)
+
+  getBalances.then((balances) => {
+    const fetchOrders = new Promise((resolve, reject) => getBittrexOrders(balances, resolve, reject))
+
+    fetchOrders.then((apiOrders) => {
+      fs.readFile(`${__dirname}/../public/bittrex.json`, 'utf8', (err, csvOrders) => {
+        let bittrexCsvOrders = JSON.parse(csvOrders).orders
+
+        Object.keys(apiOrders).forEach((marketName) => {
+          apiOrders[marketName].forEach((order) => {
+            bittrexCsvOrders[marketName] = bittrexCsvOrders[marketName] || []
+            let matchingOrder = bittrexCsvOrders[marketName].find((o) => {
+              return new Date(o.TimeStamp).setHours(0,0,0,0) == new Date(order.TimeStamp).setHours(0,0,0,0) && o.Quantity == order.Quantity
+            })
+
+            if (!matchingOrder) {
+              bittrexCsvOrders[marketName].push(order)
+            }
+          })
+        })
+
+        fs.writeFile(`${__dirname}/../public/bittrex.json`, JSON.stringify({ hodlings: balances, orders: bittrexCsvOrders }), function(err) {
           if(err) {
             res.write(JSON.stringify({msg: 'Failed to write bittrex.json', status: 'error'}))
             return console.log(err);
           }
-          res.writeHead(200, {'Content-Type': 'text/json'});
-          res.write(JSON.stringify({msg: 'Fetched records from bittrex and updated bittrex.json', status: 'success'}))
-          console.log("The file was saved!")
-          res.end()
         })
       })
     })
+  })
+}
+
+
+// @TODO probably use express or something since you don't know what you
+// are doing...
+const requestHandler = async (req, res) => {
+  console.log(req.url)
+
+  // Sync bittrex.json with real data
+  if (req.url === '/api/sync') {
+    await writeCsvData()
+    await appendApiData()
+
+    res.writeHead(200, {'Content-Type': 'text/json'});
+    res.write(JSON.stringify({msg: 'Fetched records from bittrex and updated bittrex.json', status: 'success'}))
+    console.log("The file was saved!")
+    res.end()
   } else {
     res.writeHead(404, {'Content-Type': 'text/html'});
     res.write('<html>');
