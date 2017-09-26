@@ -18,38 +18,52 @@ const combineBittrexInfo = (resolve, reject) => {
     })
 
     hodlings.forEach((item, index) => {
-      // item:  { Currency: 'BCC',
+      const market = `BTC-${item.Currency}`
+
+      // item:  {
+      //   Currency: 'BCC',
       //   Balance: 3.4e-7,
       //   Available: 3.4e-7,
       //   Pending: 0,
-      //   CryptoAddress: null }
-      bittrex.getmarketsummary({market: `BTC-${item.Currency}`}, (summary) => {
-        // summary:  { success: true,
-        //   message: '',
-        //   result:
-        //    [ { MarketName: 'BTC-BCC',
-        //        High: 0.12,
-        //        Low: 0.112,
-        //        Volume: 26303.07091572,
-        //        Last: 0.11436,
-        //        BaseVolume: 3048.22418422,
-        //        TimeStamp: '2017-09-26T00:07:28.16',
-        //        Bid: 0.11436,
-        //        Ask: 0.11479,
-        //        OpenBuyOrders: 2815,
-        //        OpenSellOrders: 14037,
-        //        PrevDay: 0.11460007,
-        //        Created: '2017-08-01T18:34:04.967' } ] }
+      //   CryptoAddress: null
+      // }
+      if (market === 'BTC-BTC') {
         records.push({
           name: item.Currency,
           balance: item.Balance,
-          currentPrice: summary ? summary.result[0].Last : item.Balance // BTC is itself...
+          currentPrice: 1 // 1 BTC worth 1 BTC
         })
+      } else {
+        bittrex.getmarketsummary({market}, (summary) => {
+          // summary:  {
+          //   success: true,
+          //   message: '',
+          //   result:
+          //    [ { MarketName: 'BTC-BCC',
+          //        High: 0.12,
+          //        Low: 0.112,
+          //        Volume: 26303.07091572,
+          //        Last: 0.11436,
+          //        BaseVolume: 3048.22418422,
+          //        TimeStamp: '2017-09-26T00:07:28.16',
+          //        Bid: 0.11436,
+          //        Ask: 0.11479,
+          //        OpenBuyOrders: 2815,
+          //        OpenSellOrders: 14037,
+          //        PrevDay: 0.11460007,
+          //        Created: '2017-08-01T18:34:04.967' } ]
+          // }
+          records.push({
+            name: item.Currency,
+            balance: item.Balance,
+            currentPrice: summary ? summary.result[0].Last : null
+          })
 
-        if (records.length === hodlings.length) {
-          resolve(records)
-        }
-      })
+          if (records.length === hodlings.length) {
+            resolve(records)
+          }
+        })
+      }
     })
   })
 }
@@ -61,7 +75,7 @@ const getBittrexOrders = (balances, resolve, reject) => {
     let market = `BTC-${balance.name}`
 
     if (market !== 'BTC-BTC') {
-      bittrex.getorderhistory({ market }, (data, err) => {
+      bittrex.getorderhistory({ market, depth: 50 }, (data, err) => {
         // {
         //   "OrderUuid": "4223cb31-6083-4d09-8ab9-c22acee67dfe",
         //   "Exchange": "BTC-ETH",
@@ -124,21 +138,6 @@ const requestHandler = (req, res) => {
     res.write('</html>');
     res.end()
   }
-
-  // bittrex test
-  // bittrex.getmarkets( function( data, err ) {
-  //   if (err) {
-  //     return console.error(err)
-  //   }
-  //   console.log(data.result[0].MarketCurrency)
-  //
-  //   for( let i in data.result ) {
-  //     // bittrex.getticker( { market : data.result[i].MarketName }, function( ticker ) {
-  //     //   console.log( ticker )
-  //     // })
-  //   }
-  // })
-
 }
 
 const server = http.createServer(requestHandler)
