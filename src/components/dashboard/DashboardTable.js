@@ -1,4 +1,5 @@
 import React, { Component } from 'react'
+import Number from '../common/number'
 import {
   Table,
   TableBody,
@@ -18,7 +19,7 @@ export default class DashboardTable extends Component {
 
     const perc = val / totalCurrentValue * 100
 
-    return perc.toFixed(2)
+    return perc
   }
 
   renderCol(content, align = 'right') {
@@ -34,18 +35,33 @@ export default class DashboardTable extends Component {
   }
 
   renderRow(row, index) {
+
+    const currentPercentage = this.calcCurrentPerc(row.balance * row.currentPrice)
+
     return (
       <TableRow key={index}>
         {this.renderCol(row.name, 'left')}
-        {this.renderCol(row.balance.toPrecision(8))}
-        {/* {this.renderCol(row.target)} */}
         {this.renderCol(
-          this.calcCurrentPerc(row.balance * row.currentPrice),
+          <Number num={row.balance} type="currency"/>
+        )}
+
+        {/* {this.renderCol(row.target)} */}
+
+        {this.renderCol(
+          <Number num={currentPercentage} type="%" />,
           'right'
         )}
-        {this.renderCol(row.currentPrice.toFixed(8))}
-        {this.renderCol((row.balance * row.currentPrice).toFixed(8))}
+
+        {this.renderCol(
+          <Number num={row.currentPrice} />
+        )}
+
+        {this.renderCol(
+          <Number num={row.balance * row.currentPrice} />
+        )}
+
         {/* {this.renderCol(row.purchaseValue)} */}
+
         {/* {this.renderCol(row.hodlReturn)} */}
       </TableRow>
     )

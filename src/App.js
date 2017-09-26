@@ -3,6 +3,7 @@ import './App.css'
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider'
 import DashboardTable from './components/dashboard/DashboardTable'
 import CoinDialog from './components/dashboard/CoinDialog'
+import Number from './components/common/number'
 
 /**
  * @TODO
@@ -24,7 +25,7 @@ class App extends Component {
   toggleCoinDialog = index => {
     this.setState({
       coinDialogOpen: !this.state.coinDialogOpen,
-      selectedRowIndex: index ? index : null
+      selectedRowIndex: index ? index[0] : null
     })
   }
 
@@ -82,7 +83,7 @@ class App extends Component {
           />
 
           <p className="total">
-            <strong>Total:</strong> <span>{total}</span> BTC
+            <strong>Total:</strong> <Number num={parseFloat(total)} />
           </p>
         </div>
       </MuiThemeProvider>
