@@ -28,7 +28,8 @@ class App extends Component {
       method: 'get'
     }).then(res => {
       res.json().then((json) => {
-        const hodlings = json.hodlings
+        const { hodlings } = json
+        console.log(json)
         this.setState({
           data: hodlings,
           total: hodlings.reduce((sum, next) => {

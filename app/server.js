@@ -18,20 +18,25 @@ const combineBittrexInfo = (resolve, reject) => {
     })
 
     hodlings.forEach((item, index) => {
-      // item:  { Currency: 'BCC',
+      const market = `BTC-${item.Currency}`
+
+      // item:  {
+      //   Currency: 'BCC',
       //   Balance: 3.4e-7,
       //   Available: 3.4e-7,
       //   Pending: 0,
-      //   CryptoAddress: null }
-      if (item.Currency === 'BTC') {
+      //   CryptoAddress: null
+      // }
+      if (market === 'BTC-BTC') {
         records.push({
           name: item.Currency,
           balance: item.Balance,
           currentPrice: 1 // 1 BTC worth 1 BTC
         })
       } else {
-        bittrex.getmarketsummary({market: `BTC-${item.Currency}`}, (summary) => {
-          // summary:  { success: true,
+        bittrex.getmarketsummary({market}, (summary) => {
+          // summary:  {
+          //   success: true,
           //   message: '',
           //   result:
           //    [ { MarketName: 'BTC-BCC',
@@ -46,7 +51,8 @@ const combineBittrexInfo = (resolve, reject) => {
           //        OpenBuyOrders: 2815,
           //        OpenSellOrders: 14037,
           //        PrevDay: 0.11460007,
-          //        Created: '2017-08-01T18:34:04.967' } ] }
+          //        Created: '2017-08-01T18:34:04.967' } ]
+          // }
           records.push({
             name: item.Currency,
             balance: item.Balance,
@@ -132,21 +138,6 @@ const requestHandler = (req, res) => {
     res.write('</html>');
     res.end()
   }
-
-  // bittrex test
-  // bittrex.getmarkets( function( data, err ) {
-  //   if (err) {
-  //     return console.error(err)
-  //   }
-  //   console.log(data.result[0].MarketCurrency)
-  //
-  //   for( let i in data.result ) {
-  //     // bittrex.getticker( { market : data.result[i].MarketName }, function( ticker ) {
-  //     //   console.log( ticker )
-  //     // })
-  //   }
-  // })
-
 }
 
 const server = http.createServer(requestHandler)
