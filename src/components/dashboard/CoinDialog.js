@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import Dialog from 'material-ui/Dialog'
+import Number from '../common/number'
 
 export default class CoinDialog extends Component {
   renderCoinOrders(order, index) {
@@ -10,7 +11,7 @@ export default class CoinDialog extends Component {
 
     return (
       <ul key={index}>
-        <li><strong>{type}</strong> {Quantity} at {PricePerUnit}BTC per unit</li>
+        <li><strong>{type}:</strong> <Number num={parseFloat(Quantity)} type='amount' /> at <Number num={parseFloat(PricePerUnit)} /> per unit</li>
       </ul>
     )
   }

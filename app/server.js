@@ -76,7 +76,7 @@ const getBittrexOrders = (balances, resolve, reject) => {
     let market = `BTC-${balance.name}`
 
     if (market !== 'BTC-BTC') {
-      bittrex.getorderhistory({ market, depth: 50 }, (data, err) => {
+      bittrex.getorderhistory({ market }, (data, err) => {
         // {
         //   "OrderUuid": "4223cb31-6083-4d09-8ab9-c22acee67dfe",
         //   "Exchange": "BTC-ETH",

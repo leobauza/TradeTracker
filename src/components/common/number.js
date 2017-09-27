@@ -13,6 +13,11 @@ const Num = ({ num, type }) => {
         <span className="number">{num.toFixed(8)}</span>
       )
 
+    case 'amount':
+      return (
+        <span className="number">{num.toFixed(8)}</span>
+      )
+
     default:
       return (
         <span className="number">
