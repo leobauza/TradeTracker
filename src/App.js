@@ -41,10 +41,21 @@ class App extends Component {
           const { hodlings, orders } = json
 
           // Combine hodlings and orders
-          const hodlingsWithOrders = hodlings.map(hodl => {
+          let hodlingsWithOrders = hodlings.map(hodl => {
             return {
               orders: orders[hodl.name],
               ...hodl
+            }
+          })
+
+          // sort by hodling amount
+          hodlingsWithOrders = hodlingsWithOrders.sort((a, b) => {
+            if (a.balance < b.balance) {
+              return 1
+            } else if (a.balance > b.balance) {
+              return -1
+            } else {
+              return 0
             }
           })
 
