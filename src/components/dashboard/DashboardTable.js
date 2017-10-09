@@ -34,6 +34,26 @@ export default class DashboardTable extends Component {
   }
 
   renderRow(row, index) {
+    let mostRecentBuys = []
+    let purchaseValue, currentValue, valueDifference, hodlWouldReturn
+
+    if (row.orders) {
+      for (let order of row.orders) {
+        if (order.OrderType === "LIMIT_BUY") {
+          mostRecentBuys = mostRecentBuys.concat(order)
+        } else {
+          break
+        }
+      }
+    }
+
+    purchaseValue = mostRecentBuys.reduce((total, buy) => {
+      return total += Math.abs(buy.Price)
+    }, 0.0)
+    currentValue = (row.balance * row.currentPrice).toFixed(8)
+    valueDifference = purchaseValue > 0 ? currentValue - purchaseValue : 0
+    hodlWouldReturn = purchaseValue > 0 ? (currentValue / purchaseValue) - 1 : 0
+
     return (
       <TableRow key={index}>
         {this.renderCol(row.name, 'left')}
@@ -44,9 +64,10 @@ export default class DashboardTable extends Component {
           'right'
         )}
         {this.renderCol(row.currentPrice.toFixed(8))}
-        {this.renderCol((row.balance * row.currentPrice).toFixed(8))}
-        {/* {this.renderCol(row.purchaseValue)} */}
-        {/* {this.renderCol(row.hodlReturn)} */}
+        {this.renderCol(currentValue)}
+        {this.renderCol(purchaseValue)}
+        {this.renderCol(valueDifference)}
+        {this.renderCol(hodlWouldReturn)}
       </TableRow>
     )
   }
@@ -74,8 +95,15 @@ export default class DashboardTable extends Component {
             <TableHeaderColumn style={{ textAlign: 'right' }}>
               Current Value
             </TableHeaderColumn>
-            {/* <TableHeaderColumn style={{textAlign: 'right'}}>Purchase Price</TableHeaderColumn> */}
-            {/* <TableHeaderColumn style={{textAlign: 'right'}}>Hodl Would Return %</TableHeaderColumn> */}
+            <TableHeaderColumn style={{textAlign: 'right'}}>
+              Purchase Value
+            </TableHeaderColumn>
+            <TableHeaderColumn style={{textAlign: 'right'}}>
+              Value Difference
+            </TableHeaderColumn>
+            <TableHeaderColumn style={{textAlign: 'right'}}>
+              Hodl Would Return %
+            </TableHeaderColumn>
           </TableRow>
         </TableHeader>
 
