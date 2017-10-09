@@ -6,17 +6,19 @@ const port = 3006
 const bittrex = require('node.bittrex.api')
 const { API_KEY, API_SECRET } = require('./app.conf')
 
+const MARKETNAME_MAPPINGS = {
+  'ANS': 'NEO'
+}
+
 bittrex.options({
   'apikey':    API_KEY,
   'apisecret': API_SECRET
 });
 
-const combineBittrexInfo = (resolve, reject) => {
+const getBittrexApiBalances = (resolve, reject) => {
   bittrex.getbalances( ( data, err ) => {
     const records = []
-    const hodlings = data.result.filter((hodl) => {
-      return hodl.Balance > 0
-    })
+    const hodlings = data.result
 
     hodlings.forEach((item, index) => {
       const market = `BTC-${item.Currency}`
@@ -69,7 +71,7 @@ const combineBittrexInfo = (resolve, reject) => {
   })
 }
 
-const getBittrexOrders = (balances, resolve, reject) => {
+const getBittrexApiOrders = (balances, resolve, reject) => {
   const records = {}
 
   balances.forEach((balance, index) => {
@@ -104,7 +106,8 @@ const getBittrexOrders = (balances, resolve, reject) => {
   })
 }
 
-const writeCsvData = () => {
+// STEP 1: consume the CSV data
+const consumeCsvData = () => {
   const csvOrders = {}
 
   fs.readFile(`${__dirname}/../orders.csv`, 'utf8', (err, fileData) => {
@@ -117,12 +120,13 @@ const writeCsvData = () => {
       csvData.forEach((row, index) => {
         if (index !== 0) {
           let marketName = row[2].replace('BTC-', '')
+          marketName = MARKETNAME_MAPPINGS[marketName] || marketName
           csvOrders[marketName] = csvOrders[marketName] || []
           csvOrders[marketName].push(
             // match the API order format
             {
               "OrderUuid": null,
-              "Exchange": row[2],
+              "Exchange": `BTC-${marketName}`,
               "TimeStamp": row[0],
               "OrderType": row[3].replace(' ', '_').toUpperCase(),
               "Limit": row[4],
@@ -152,10 +156,10 @@ const writeCsvData = () => {
 }
 
 const appendApiData = () => {
-  const getBalances = new Promise(combineBittrexInfo)
+  const getBalances = new Promise(getBittrexApiBalances)
 
   getBalances.then((balances) => {
-    const fetchOrders = new Promise((resolve, reject) => getBittrexOrders(balances, resolve, reject))
+    const fetchOrders = new Promise((resolve, reject) => getBittrexApiOrders(balances, resolve, reject))
 
     fetchOrders.then((apiOrders) => {
       fs.readFile(`${__dirname}/../public/bittrex.json`, 'utf8', (err, csvOrders) => {
@@ -193,7 +197,7 @@ const requestHandler = async (req, res) => {
 
   // Sync bittrex.json with real data
   if (req.url === '/api/sync') {
-    await writeCsvData()
+    await consumeCsvData()
     await appendApiData()
 
     res.writeHead(200, {'Content-Type': 'text/json'});
